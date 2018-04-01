@@ -1,0 +1,140 @@
+---
+title: "Price Elasticity"
+author: "Aravind"
+date: "November 12, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+setwd("D:/R Projects")
+```
+
+
+Required Libraries
+
+```{r}
+#install.packages("memisc")
+library(memisc)
+library(car)
+```
+
+
+
+
+Load Data & File overview
+```{r}
+sales.data<-read.csv('supermarket.csv')
+sapply(sales.data,class)
+```
+
+
+Convert Ad.Type into Factor and Print Summary
+
+```{r}
+sales.data$Ad.Type<-as.factor(sales.data$Ad.Type)
+summary(sales.data)
+```
+
+From the results we find that:
+
+Sales of eggs ranged between 18 and 46
+Price of eggs ranged between $3.73 and $4.77
+We showed the egg poster 15 times and the cookies poster 15 times
+Price of cookies ranged between $4 and $4.81
+
+Create Models
+
+```{r}
+m1<-lm(formula=Sales~Price.Eggs,data=sales.data)
+m2<-update(m1,.~.+Ad.Type)
+m3<-update(m2,.~.+Price.Cookies)
+mtable(m1,m2,m3)
+```
+
+The results are pasted below. We end up with a model "m3" that has statistically significant predictors. Our model is:
+
+Sales of Eggs = 137.37 - (16.12)Price.Eggs + 4.15 (Ad.Type) - (8.71)Price.Cookies
+
+We look at our R2 and see that the regression explains 88.6% of the variance in the data. We also have a low mean squared error (2.611) compared to the other models we generated.
+
+We can actually get better results by transforming our independent and dependent variables (e.g. LN(Sales)) but this will suffice for demonstrating how we can use regressions to calculate price elasticity.
+
+Diagnostics
+
+We need to test for the following assumptions whenever we do regression analysis:
+
+1. The relationship is linear
+2. The errors have the same variance
+3. The errors are independent of each other
+4. The errors are normally distributed
+
+Linearity Plots
+
+```{r}
+par(mfrow=c(1,2))
+plot(m3)
+par(mfrow=c(1,1))
+```
+
+
+
+Check for multicollineraity
+
+
+```{r}
+vif(m3)  
+sqrt(vif(m3)) > 2 
+```
+
+The code above will show if any of the variables have multicolinearity issues that could cause issues with the model's integrity. Generally we want values less than 2, and we have values of around 1 so we are good on this front.
+
+
+Diagnosis: Nonlinearity
+
+
+```{r}
+crPlots(m3)
+```
+
+We see that there is definitely some issues with linearity but not to an extent that it is a cause for concern for the purpose of demonstration. So we keep calm, and move on.
+
+
+Diagnosis: Non-independence of Errors 
+We want a D-W Statistic close to 2
+
+```{r}
+durbinWatsonTest(m3)
+```
+
+
+Compute Price Elasticity
+
+Own Price Elasticity
+
+```{r}
+PE<-as.numeric(m3$coefficients["Price.Eggs"] * mean(sales.data$Price.Eggs)/mean(sales.data$Sales))
+PE
+```
+
+PE of 2.378 means that an increase in the price of eggs by 1 unit will decrease the sales by 2.38 units.
+
+
+Cross Price Elasticity
+
+```{r}
+CPEcookies<-as.numeric(m3$coefficients["Price.Cookies"] * mean(sales.data$Price.Cookies)/mean(sales.data$Sales))
+CPEcookies
+```
+
+PE of 1.269 means that an increase in the price of cookies by 1 unit will decrease the sales of eggs by 1.27 units.
+
+
+
+Interpretation
+
+We now know that the price of eggs and price of cookies are complementary to one another in this scenario. Since you only sell too products, one explanation could be that people who come in for cookies and eggs would rather get them elsewhere if the price is too high.
